@@ -50,12 +50,16 @@ def get_baseline_timestamps(timestamps,baseline_minute_start,baseline_minute_end
         
 def get_baselines (parameter,dataFrame,baseline_start,baseline_end):
     baseline_timestamps = get_baseline_timestamps(sorted(dataFrame.index),baseline_start,baseline_end)
-    return dataFrame[parameter][baseline_timestamps[0]:baseline_timestamps[1]].mean()
+    baselines = []
+    for p in parameter:
+        baselines.append({
+            'name': p,
+            'value':dataFrame[p][baseline_timestamps[0]:baseline_timestamps[1]].mean()})
+    return baselines
 
-def add_delta_features (dataFrame,baseline_hr,baseline_power):
-    dataFrame['delta_hr'] = baseline_hr - dataFrame['heart_rate']
-    dataFrame['delta_power'] = baseline_power - dataFrame['power']
-
+def add_delta_features (dataFrame,baselines):
+    for b in baselines:
+        dataFrame[f'delta_{b['name']}'] = dataFrame[f'{b['name']}'] - b['value'] 
     return dataFrame
 
 
@@ -63,13 +67,6 @@ activity = FitFile('22105359350_ACTIVITY.fit')
 
 records = get_cleaned_records(activity)
 
-baseline_hr = get_baselines ('heart_rate',records,5,15)
+baselines = get_baselines (['heart_rate','power'],records,5,15)
 
-baseline_power = get_baselines ('power',records,5,15)
-
-print (baseline_hr)
-
-print (baseline_power)
-
-add_delta_features(records,baseline_hr, baseline_power)
-
+add_delta_features (records,baselines)
