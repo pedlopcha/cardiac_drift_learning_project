@@ -34,16 +34,20 @@ def find_gaps (timestamps):
                 })
     return time_gap
 
-def get_cleaned_records (fit_file):
+def get_cleaned_records (fit_file,check_gaps=False):
     records = get_dataframe (fit_file,'record','timestamp')
-    print (find_gaps(records.index))
+    if check_gaps:
+        print (find_gaps(records.index))
     records['cadence'] = records['cadence'].ffill(limit=10)
     records['heart_rate'] = records['heart_rate'].ffill(limit=3)
     records['power'] = records['power'].ffill(limit=1)
     return records
 
 def get_baseline_timestamps(timestamps,baseline_minute_start,baseline_minute_end):
+    if baseline_minute_start < 0 or baseline_minute_end <=baseline_minute_start:
+        raise ValueError ('Invalid baseline windows negative values are not allowed')    
     ride_start = timestamps[0]
+
     baseline_start = ride_start + pd.Timedelta(minutes=baseline_minute_start)
     baseline_end = ride_start + pd.Timedelta(minutes=baseline_minute_end)
     return [baseline_start,baseline_end]
@@ -58,9 +62,10 @@ def get_baselines (parameter,dataFrame,baseline_start,baseline_end):
     return baselines
 
 def add_delta_features (dataFrame,baselines):
+    df = dataFrame.copy()
     for b in baselines:
-        dataFrame[f'delta_{b['name']}'] = dataFrame[f'{b['name']}'] - b['value'] 
-    return dataFrame
+        df[f'delta_{b['name']}'] = df[f'{b['name']}'] - b['value'] 
+    return df
 
 
 activity = FitFile('22105359350_ACTIVITY.fit')
@@ -69,4 +74,9 @@ records = get_cleaned_records(activity)
 
 baselines = get_baselines (['heart_rate','power'],records,5,15)
 
-add_delta_features (records,baselines)
+delta_records = add_delta_features (records,baselines)
+
+timestamps = get_baseline_timestamps (delta_records.index,5,15)
+window = delta_records.loc[timestamps[0]:timestamps[1]]
+
+print (window.describe())
