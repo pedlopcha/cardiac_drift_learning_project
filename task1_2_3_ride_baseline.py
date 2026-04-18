@@ -71,10 +71,13 @@ def add_delta_features (dataFrame,baselines):
 def get_slope (window):
     return np.polyfit(np.arange(len(window)),window,1)[0]
 
-def add_slope (dataFrame,parameters,rolling_length):
+def add_slope_and_mean (dataFrame,parameters,rolling_length):
+# The first 'rolling_length' rows will be NaN as the rolling function is configured to need at least
+# the number of data points which is equal to the paramter length.
     df = dataFrame.copy()
     for p in parameters:
         df[f'{p}_slope'] = df[f'{p}'].rolling(rolling_length).apply(get_slope)
+        df[f'{p}_mean'] = df[f'{p}'].rolling(rolling_length).mean()
     return df
 
 
@@ -84,11 +87,14 @@ records = get_cleaned_records(activity)
 
 baselines = get_baselines (['heart_rate','power'],records,5,15)
 
-delta_records = add_delta_features (records,baselines)
+records = add_delta_features (records,baselines)
 
-timestamps = get_baseline_timestamps (delta_records.index,5,15)
-window = delta_records.loc[timestamps[0]:timestamps[1]]
+records = add_slope_and_mean (records,['heart_rate','power'],300)
 
-records_slope = add_slope (records,['heart_rate','power'],300)
+window = records['heart_rate_slope'].nlargest(10).index[5]
 
-records_slope.info()
+records_index = records.index.get_loc(window)
+
+print (records[['heart_rate','heart_rate_slope']].loc[records.index[records_index-300]:records.index[records_index]])
+
+
