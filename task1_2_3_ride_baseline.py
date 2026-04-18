@@ -1,5 +1,6 @@
 from fitparse import FitFile
 import pandas as pd
+import numpy as np
 
 def get_records (fit_file,record_type,amount=None):
     all_records = [] ## Defines an array for all messages in the file
@@ -67,6 +68,15 @@ def add_delta_features (dataFrame,baselines):
         df[f'delta_{b['name']}'] = df[f'{b['name']}'] - b['value'] 
     return df
 
+def get_slope (window):
+    return np.polyfit(np.arange(len(window)),window,1)[0]
+
+def add_slope (dataFrame,parameters,rolling_length):
+    df = dataFrame.copy()
+    for p in parameters:
+        df[f'{p}_slope'] = df[f'{p}'].rolling(rolling_length).apply(get_slope)
+    return df
+
 
 activity = FitFile('22105359350_ACTIVITY.fit')
 
@@ -79,4 +89,6 @@ delta_records = add_delta_features (records,baselines)
 timestamps = get_baseline_timestamps (delta_records.index,5,15)
 window = delta_records.loc[timestamps[0]:timestamps[1]]
 
-print (window.describe())
+records_slope = add_slope (records,['heart_rate','power'],300)
+
+records_slope.info()
