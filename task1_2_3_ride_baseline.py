@@ -55,17 +55,15 @@ def get_baseline_timestamps(timestamps,baseline_minute_start,baseline_minute_end
         
 def get_baselines (parameter,dataFrame,baseline_start,baseline_end):
     baseline_timestamps = get_baseline_timestamps(sorted(dataFrame.index),baseline_start,baseline_end)
-    baselines = []
+    baselines = {}
     for p in parameter:
-        baselines.append({
-            'name': p,
-            'value':dataFrame[p][baseline_timestamps[0]:baseline_timestamps[1]].mean()})
+        baselines[p] = dataFrame[p][baseline_timestamps[0]:baseline_timestamps[1]].mean()
     return baselines
 
 def add_delta_features (dataFrame,baselines):
     df = dataFrame.copy()
     for b in baselines:
-        df[f'delta_{b['name']}'] = df[f'{b['name']}'] - b['value'] 
+        df[f'delta_{b}'] = df[f'{b}'] - baselines[b] 
     return df
 
 def get_slope (window):
@@ -80,6 +78,14 @@ def add_slope_and_mean (dataFrame,parameters,rolling_length):
         df[f'{p}_mean'] = df[f'{p}'].rolling(rolling_length).mean()
     return df
 
+def add_hr_power_delta_ratio (dataFrame,baseline):
+    df = dataFrame.copy()
+
+    hr_power_ratio_delta = (df['heart_rate']) / df['power'] - (baseline['heart_rate'] / baseline['power'])
+
+    df ['hr_power_ratio_delta'] = hr_power_ratio_delta.replace([np.inf, -np.inf],np.nan)
+
+    return df
 
 activity = FitFile('22105359350_ACTIVITY.fit')
 
@@ -91,10 +97,19 @@ records = add_delta_features (records,baselines)
 
 records = add_slope_and_mean (records,['heart_rate','power'],300)
 
+## How to find out the rows with the highest slope
+
 window = records['heart_rate_slope'].nlargest(10).index[5]
 
+## With this function I get the location of a certain index (in this case needed due to timestamp indexes and me wanting to print a certain window around an index)
 records_index = records.index.get_loc(window)
 
 print (records[['heart_rate','heart_rate_slope']].loc[records.index[records_index-300]:records.index[records_index]])
+
+records_with_ratio = add_hr_power_delta_ratio(records,baselines)
+
+print (records_with_ratio[['heart_rate','power','hr_power_ratio_delta']])
+
+
 
 

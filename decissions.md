@@ -136,3 +136,38 @@ Week 2 complete. Clean DataFrame produced with:
 - is_pause column marking gap boundaries
 - HR and power forward-filled with conservative limits
 Week 3 next: feature engineering — rolling windows, HR delta, HR/power ratio delta.
+
+## Findings and learnings (Week 3 - Baseline computation and data manipulation)
+The goal of the week was to perform calculations based on the data. 
+
+### Baseline calculation
+Calculate the power and hr baseline, meaning the mean hr and mean power for a certain interval. In this case was minutes 5 to 15. 
+
+For that I created a function which extracts the baseline_start and baseline_end based on a time interval. We learned also that pandas would give us the next timestamp when extracting a certain value in case the timestamp doesn's exist. 
+
+### Delta features
+
+In this task we needed to calculate and add a new column to the dataFrame which includes the delta between the hr and power value and the baseline one. 
+
+### Rolling Slope and mean
+
+We needed to calculate also the slope and mean of certain rolling intervals. We decided to go with 5 minutes intervals (or rather said 300 records intervals), for that the rolling() function from pandas is used. 
+
+In the case of the rolling mean was easy as it was to apply rolling(300).mean() to a column. 
+
+In the case of the slope was more complicated as we needed to import numpy as np and use the polyfit function. For that we created this function
+
+```
+def get_slope (window):
+    return np.polyfit(np.arange(len(window)),window,1)[0]
+```
+
+A window needs to be passed as a parameter, and the window is the rolling window. So the arange window give indexes 0 to 299 if you pass a 300 window and uses them as x axis, the values of the rolling window (heart_rate or power) as y axis and 1 is the polynomial. [0] is meant because we want just the first value of the array returned by the function, which is the slope itself.
+
+This is the part of the week I struggled most with. And the learning system was failing to explain the things, for the next sessions we need to dig deeper when new libraries or functions are used, and they need to be explained properly. Otherwise I don't learn the topics properly. 
+
+### HR / Power Ratio Delta
+
+The last task was to calculate the HR / Power ratio and it's delta with the baseline ratio. 
+
+This was kind of an easy task, the only thing to consider where the points in the data with power values of 0 (where I'm not pedaling) which produce a inf value. In this case I used the df.replace() funtion with [np.inf, -np.inf],np.nan . And Claude recommended me to remove the inplace = True , even if I proved that there was no None being returned but the actual values. 
