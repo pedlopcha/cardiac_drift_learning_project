@@ -2,7 +2,9 @@ from fitparse import FitFile
 import pandas as pd
 import numpy as np
 
-fit_file = '22105359350_ACTIVITY.fit'
+fit_file = '22569053640_ACTIVITY.fit'
+
+fit_file_2 = '22105359350_ACTIVITY.fit'
 
 def get_records (fit_file,record_type,amount=None):
     all_records = [] ## Defines an array for all messages in the file
@@ -80,22 +82,39 @@ def add_slope_and_mean (dataFrame,parameters,rolling_length):
         df[f'{p}_mean'] = df[f'{p}'].rolling(rolling_length).mean()
     return df
 
-def add_hr_power_delta_ratio (dataFrame,baseline):
+def add_efficiency_ratio_and_delta (dataFrame,baseline):
     df = dataFrame.copy()
+    rolling_power = df['3s_power'].rolling(window=300, min_periods = 5).mean()
+    df['rolling_hr'] = df['heart_rate'].rolling(window=300, min_periods = 5).mean() 
+    efficiency_ratio = (rolling_power/ df['rolling_hr']).replace([np.inf, -np.inf],np.nan)
+    df ['efficiency_ratio'] = efficiency_ratio
+    efficiency_ratio_baseline = baseline['3s_power'] / baseline ['heart_rate']
+    efficiency_ratio_delta = df['efficiency_ratio'] - efficiency_ratio_baseline
+    df ['efficiency_ratio_delta'] = efficiency_ratio_delta.replace([np.inf, -np.inf],np.nan)
+    return df
 
-    hr_power_ratio_delta = (df['heart_rate']) / df['power'] - (baseline['heart_rate'] / baseline['power'])
+def add_seconds_power (dataFrame,seconds=3):
+    df = dataFrame.copy()
+    df[f'{seconds}s_power'] = df['power'].rolling(seconds).mean()
+    return df
 
-    df ['hr_power_ratio_delta'] = hr_power_ratio_delta.replace([np.inf, -np.inf],np.nan)
-
+def add_power_cv (dataFrame,rolling_window = 300):
+    df = dataFrame.copy()
+    df ['power_cv'] = df['3s_power'].rolling(rolling_window).std() / df['3s_power'].rolling(rolling_window).mean() 
+    df.loc [df['power']<20,'power_cv'] = np.nan
     return df
 
 def build_feature_dataframe (fit_file,baseline_start = 5, baseline_end = 15,rolling_length=300):
     activity = FitFile (fit_file)
-    records = get_cleaned_records (activity)
-    baselines = get_baselines (['heart_rate','power'],records,baseline_start,baseline_end)
+    records = get_cleaned_records (activity)    
+    records = add_seconds_power(records)
+    records = add_seconds_power(records,10)
+    baselines = get_baselines (['heart_rate','3s_power'],records,baseline_start,baseline_end)
     records = add_delta_features (records,baselines)
     records = add_slope_and_mean (records,['heart_rate','power'],300)
-    records = add_hr_power_delta_ratio (records,baselines)
+    records = add_efficiency_ratio_and_delta (records,baselines)
+    records = add_power_cv(records)
     return records
 
-records = build_feature_dataframe(fit_file)
+
+records = build_feature_dataframe(fit_file_2)
