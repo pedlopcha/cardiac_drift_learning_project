@@ -32,12 +32,12 @@ A system that predicts cardiac drift on the bike 10 minutes before it happens an
 - HR_delta (current HR minus baseline HR)
 - HR_slope over 5, 10, 15 minute rolling windows
 - Power coefficient of variation (CV) over rolling windows
-- HR/power ratio delta from baseline
+- HR/power ratio (efficiency ratio) delta from baseline
 - Time in zone (cumulative fatigue proxy)
 
 ### Labeling Strategy
 - Drift onset label applied in hindsight to historical .fit files
-- Rule: HR delta > 6–8 bpm over 15 min AND power CV < 5% over same window
+- Rule: (Baseline efficiency - Current Efficiency) / Baseline efficiency > 0.05 drift_onset = true
 - Prediction target: will drift_onset be True in the next 10 minutes?
 - This creates a binary classification problem per second of ride data
 
