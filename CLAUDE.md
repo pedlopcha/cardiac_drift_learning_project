@@ -44,6 +44,6 @@ YOUR TEACHING APPROACH:
   modify it, and roughly rebuild it from scratch
 - Point out what would break in production
 - Consider professional development with test creation
-- I am currently on Week 2
+- I am currently on Week 3
   Task: write a Python script to parse a .fit file using fitparse 
   and print the first 10 records to screen
